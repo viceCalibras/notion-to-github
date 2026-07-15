@@ -89,6 +89,10 @@ render **inline inside the issue — even for private repos** (where external im
    https://notion.so/<workspace>/<DATABASE_ID>?v=...
    ```
 
+   > **Tip:** you can pass the whole URL to `--database` and the tool extracts the ID
+   > for you. Just make sure you use the **database ID** (the part *before* `?v=`),
+   > not the `v=` **view ID** — passing the view ID causes `object_not_found`.
+
 ## Use it (the simple way)
 
 ```bash
@@ -100,6 +104,19 @@ python3 notion_to_github.py \
 ```
 
 That's it. Every row becomes an issue, images included.
+
+Both `--database` and `--repo` also accept a full URL, so you can copy-paste
+straight from the browser:
+
+```bash
+python3 notion_to_github.py \
+  --database "https://www.notion.so/<workspace>/<DATABASE_ID>?v=<VIEW_ID>" \
+  --repo "https://github.com/my-org/my-repo"
+```
+
+> **Organizations:** always include the owner in `--repo` (e.g. `my-org/my-repo`
+> or the full URL). A bare name like `--repo my-repo` is rejected because `gh`
+> would otherwise assume your personal account and fail for org-owned repos.
 
 ## Use it (with labels and auto-close)
 
@@ -127,8 +144,8 @@ python3 notion_to_github.py --database <DATABASE_ID> --repo myname/myrepo --dry-
 | Flag | Purpose | Default |
 | --- | --- | --- |
 | `--token` | Notion token (or set `NOTION_TOKEN`) | env var |
-| `--database` | Notion database ID | required |
-| `--repo` | Target repo `owner/name` | required |
+| `--database` | Notion database ID or database URL | required |
+| `--repo` | Target repo `owner/name` or GitHub URL | required |
 | `--label-prop` | Notion property → label (repeatable) | none |
 | `--status-prop` | Property used to detect "done" rows | none |
 | `--close-status` | Close rows whose status equals this | none |

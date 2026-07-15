@@ -23,6 +23,7 @@ import sys
 import tempfile
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 NOTION_VERSION = "2022-06-28"
@@ -34,8 +35,10 @@ API = "https://api.notion.com/v1"
 # --------------------------------------------------------------------------- #
 def notion(path, token, method="GET", body=None):
     data = json.dumps(body).encode() if body is not None else None
+    # Callers may pass either an absolute URL or a path relative to API.
+    _final_url = path if path.startswith("http") else f"{API}{path}"
     req = urllib.request.Request(
-        f"{API}{path}",
+        _final_url,
         data=data,
         method=method,
         headers={
@@ -102,6 +105,51 @@ def prop_value(p):
     if t == "date":
         return (v or {}).get("start", "") if v else ""
     return ""
+
+
+def db_id_from_arg(value):
+    """Accept a raw database ID or a Notion URL and return the database ID.
+
+    A Notion database URL looks like:
+        https://www.notion.so/<workspace>/<DATABASE_ID>?v=<VIEW_ID>
+    The path segment is the database ID; the `v=` query param is the view ID
+    (a common source of `object_not_found`), so it must be ignored.
+    """
+    value = value.strip()
+    if "notion.so" in value or value.startswith("http"):
+        path = urllib.parse.urlsplit(value).path
+        value = path.rstrip("/").split("/")[-1]
+        # A page/database slug may be "Title-<id>"; keep the trailing id part.
+        if "-" in value:
+            value = value.split("-")[-1]
+    ids = re.findall(r"[0-9a-fA-F]{32}", value.replace("-", ""))
+    return ids[0] if ids else value
+
+
+def repo_from_arg(value):
+    """Accept a repo as `owner/name`, a GitHub URL, or an SSH remote and return
+    the canonical `owner/name`.
+
+    A bare name (e.g. `elector-issues`) is rejected, because `gh` would silently
+    assume the logged-in user as the owner — which fails for repos that live
+    under an organization.
+    """
+    value = value.strip()
+    # SSH form: git@github.com:owner/name(.git).
+    m = re.match(r"git@[^:]+:(?P<path>.+)", value)
+    if m:
+        value = m.group("path")
+    elif value.startswith("http"):
+        value = urllib.parse.urlsplit(value).path.lstrip("/")
+    value = re.sub(r"\.git$", "", value).strip("/")
+    parts = [p for p in value.split("/") if p]
+    if len(parts) < 2:
+        raise SystemExit(
+            f"--repo must be 'owner/name' or a GitHub URL, got '{value}'. "
+            "A bare name is ambiguous (it would default to your personal "
+            "account). Example: --repo CalibrasDK/elector-issues"
+        )
+    return f"{parts[0]}/{parts[1]}"
 
 
 # --------------------------------------------------------------------------- #
@@ -242,8 +290,8 @@ def main():
     ap = argparse.ArgumentParser(description="Migrate a Notion database into GitHub issues.")
     ap.add_argument("--token", default=os.environ.get("NOTION_TOKEN"),
                     help="Notion integration token (or set NOTION_TOKEN).")
-    ap.add_argument("--database", required=True, help="Notion database ID.")
-    ap.add_argument("--repo", required=True, help="Target GitHub repo as owner/name.")
+    ap.add_argument("--database", required=True, help="Notion database ID or database URL.")
+    ap.add_argument("--repo", required=True, help="Target GitHub repo as owner/name or a GitHub URL.")
     ap.add_argument("--label-prop", action="append", default=[],
                     help="Notion property whose value becomes an issue label. Repeatable.")
     ap.add_argument("--status-prop", help="Property used to detect done items (with --close-status).")
@@ -256,6 +304,9 @@ def main():
 
     if not args.token:
         raise SystemExit("Missing Notion token: pass --token or set NOTION_TOKEN.")
+
+    args.database = db_id_from_arg(args.database)
+    args.repo = repo_from_arg(args.repo)
 
     print(f"-> querying Notion database {args.database}")
     rows = paginate(f"{API}/databases/{args.database}/query", args.token, "POST", {})
