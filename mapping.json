@@ -1,0 +1,41 @@
+{
+  "label": {
+    "property": "category",
+    "map": {
+      "bug": "bug",
+      "feature_extraction": "feature_extraction",
+      "llm_RAG_ds": "llm_RAG_ds",
+      "infra": "infra",
+      "platform": "platform",
+      "ux": "ux",
+      "Testing": "testing"
+    }
+  },
+  "assignees": {
+    "property": "responsible",
+    "map": {
+      "iheb brini": "iheb-brini",
+      "Johannes": "JohannesHackl",
+      "Noor Alam": "techienoor",
+      "Vice Rončević": "viceCalibras",
+      "Muhammad Muaz Hassan": "muazDS"
+    }
+  },
+  "status": {
+    "property": "status",
+    "map": {
+      "Not started": "Open",
+      "Paused": "Open",
+      "In progress": "Open",
+      "Done": "Completed"
+    }
+  },
+  "priority": {
+    "property": "priority",
+    "map": {
+      "High": "High",
+      "Medium": "Medium",
+      "Low": "Low"
+    }
+  }
+}

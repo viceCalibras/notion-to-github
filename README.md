@@ -133,6 +133,85 @@ python3 notion_to_github.py \
 - `--label-prop Typ` → the value of the "Typ" column becomes a label (repeat for more columns).
 - `--status-prop Status --close-status Done` → rows where "Status" is "Done" are created **and immediately closed**.
 
+## Use it (with mapping.json for labels, assignees and status)
+
+Instead of (or in addition to) `--label-prop` / `--status-prop`, you can create a
+`mapping.json` file that maps Notion property values to GitHub labels, assignees,
+and open/closed state with full 1:1 control.
+
+A sample `mapping.json` is included in the repo — edit it to match your database:
+
+```json
+{
+  "label": {
+    "property": "category",
+    "map": {
+      "Bug": "bug",
+      "Feature request": "enhancement",
+      "Improvement": "improvement"
+    }
+  },
+  "assignees": {
+    "property": "responsible",
+    "map": {
+      "Notion Display Name": "github-username"
+    }
+  },
+  "status": {
+    "property": "status",
+    "map": {
+      "Backlog": "open",
+      "In Progress": "open",
+      "Done": "closed",
+      "Cancelled": "closed:not planned"
+    }
+  },
+  "priority": {
+    "property": "priority",
+    "map": {
+      "Urgent": "Critical",
+      "High": "High",
+      "Medium": "Medium",
+      "Low": "Low"
+    }
+  }
+}
+```
+
+Each section is optional — include only the ones you need.
+
+| Section | Notion property | GitHub target | Unmapped values |
+| --- | --- | --- | --- |
+| `label` | `category` (or any property) | Issue labels | Passed through as-is with a warning |
+| `assignees` | `responsible` (or any `people` property) | Issue assignees | Skipped with a warning |
+| `status` | `status` (or any property) | Open/closed state | Skipped with a warning |
+| `priority` | `priority` (or any property) | Priority issue field | Skipped with a warning |
+
+**Status values:** use `"open"`, `"closed"` / `"completed"` (closes with reason
+*completed*), or `"closed:not planned"` / `"not planned"` (closes with reason
+*not planned*). Case-insensitive.
+
+**Priority values:** the mapped values must exactly match the option names of the
+Priority issue field in your GitHub organization (e.g. `"Critical"`, `"High"`,
+`"Medium"`, `"Low"`). The tool auto-discovers the field ID at startup via
+`gh api /orgs/{org}/issue-fields`. To see your available options run:
+
+```bash
+gh api /orgs/YOUR-ORG/issue-fields \
+  -H "X-GitHub-Api-Version: 2026-03-10" \
+  --jq '.[] | select(.name == "Priority")'
+```
+
+By default the tool looks for `./mapping.json` in the working directory. Use
+`--mapping path/to/file.json` to point elsewhere.
+
+```bash
+python3 notion_to_github.py \
+  --database <DATABASE_ID> \
+  --repo my-org/my-repo \
+  --mapping my-mapping.json
+```
+
 ## Preview first (creates nothing)
 
 ```bash
@@ -146,6 +225,7 @@ python3 notion_to_github.py --database <DATABASE_ID> --repo myname/myrepo --dry-
 | `--token` | Notion token (or set `NOTION_TOKEN`) | env var |
 | `--database` | Notion database ID or database URL | required |
 | `--repo` | Target repo `owner/name` or GitHub URL | required |
+| `--mapping` | Path to `mapping.json` for labels, assignees, status, priority | `mapping.json` |
 | `--label-prop` | Notion property → label (repeatable) | none |
 | `--status-prop` | Property used to detect "done" rows | none |
 | `--close-status` | Close rows whose status equals this | none |
@@ -160,6 +240,7 @@ python3 notion_to_github.py --database <DATABASE_ID> --repo myname/myrepo --dry-
   images from your issues.
 - The title is taken automatically from the database's title column; no flag needed.
 - Re-running creates issues again (no dedup) — use `--dry-run` to check first.
+- To bulk delete issues: `gh issue list --repo your-org-name/your-repo --state open --limit 1000 --json number -q '.[].number' | xargs -I {} gh issue delete {} --repo your-org-name/your-repo --yes`
 
 ## Security
 
