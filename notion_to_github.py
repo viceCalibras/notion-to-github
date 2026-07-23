@@ -605,8 +605,18 @@ def main():
                 "--limit", "5000", "--json", "number,title"], check=True)
         existing = json.loads(r.stdout)
         by_title = {}
+        dup_titles = set()
         for iss in existing:
-            by_title.setdefault(iss["title"], iss["number"])
+            title = iss["title"]
+            if title in by_title:
+                dup_titles.add(title)
+            else:
+                by_title[title] = iss["number"]
+        if dup_titles:
+            print(f"  ! {len(dup_titles)} duplicate issue titles detected; "
+                  "skipping updates for those titles.", file=sys.stderr)
+            for title in dup_titles:
+                by_title.pop(title, None)
         print(f"   {len(existing)} existing issues loaded")
         matched, skipped, updated = 0, 0, 0
         for t in tasks:
