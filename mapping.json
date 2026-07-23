@@ -14,11 +14,7 @@
   "assignees": {
     "property": "responsible",
     "map": {
-      "iheb brini": "iheb-brini",
-      "Johannes": "JohannesHackl",
-      "Noor Alam": "techienoor",
-      "Vice Rončević": "viceCalibras",
-      "Muhammad Muaz Hassan": "muazDS"
+      "name-in-notion": "name-in-github"
     }
   },
   "status": {
@@ -42,13 +38,7 @@
     "tag": {
       "property": "tag",
       "map": {
-        "APC": "APC",
-        "UpSmarting": "UpSmarting",
-        "PartsOnDemand": "PartsOnDemand",
-        "EasyPartz": "EasyPartz",
-        "SQ": "SQ",
-        "Demo": "Demo",
-        "Resilliance": "Resilliance"
+        "tag-in-notion": "tag-in-github"
       }
     }
   }

@@ -284,17 +284,6 @@ def apply_mapping(mapping, props):
 
     for gh_name, sec in mapping.get("issue_fields", {}).items():
         raw = prop_value(props.get(sec["property"], {}))
-        # #region agent log
-        try:
-            import json as _j, time as _t
-            _prop_keys = [k.lower() for k in props.keys()]
-            _prop_exact = sec["property"] in props
-            _prop_lower = sec["property"].lower() in _prop_keys
-            with open("/home/vice-calibras/calibras/notion-to-github/.cursor/debug-7fddf2.log", "a") as _f:
-                _f.write(_j.dumps({"sessionId": "7fddf2", "hypothesisId": "A,B,C", "location": "notion_to_github.py:285", "message": "issue_field lookup", "data": {"gh_name": gh_name, "notion_property": sec["property"], "exact_match": _prop_exact, "lower_match": _prop_lower, "raw_value": str(raw)[:100], "raw_type": type(raw).__name__, "prop_keys_sample": list(props.keys())[:10]}, "timestamp": int(_t.time() * 1000)}) + "\n")
-        except Exception:
-            pass
-        # #endregion
         # For multi-select Notion properties, pick the first mapped value
         # (GitHub single-select fields only hold one).
         values = raw if isinstance(raw, list) else [raw]
@@ -587,15 +576,6 @@ def main():
             if m_close:
                 close, close_reason = True, m_reason
             field_values = m_fv
-        # #region agent log
-        if field_values:
-            try:
-                import json as _j, time as _t
-                with open("/home/vice-calibras/calibras/notion-to-github/.cursor/debug-7fddf2.log", "a") as _f:
-                    _f.write(_j.dumps({"sessionId": "7fddf2", "hypothesisId": "D", "location": "notion_to_github.py:589", "message": "task field_values", "data": {"i": i, "title": title[:60], "field_values": field_values}, "timestamp": int(_t.time() * 1000)}) + "\n")
-            except Exception:
-                pass
-        # #endregion
 
         tasks.append({"i": i, "title": title[:250], "body": body,
                       "img_dir": f"{i:03d}", "n_img": len(images),
