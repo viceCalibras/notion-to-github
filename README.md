@@ -145,34 +145,24 @@ A sample `mapping.json` is included in the repo — edit it to match your databa
 {
   "label": {
     "property": "category",
-    "map": {
-      "Bug": "bug",
-      "Feature request": "enhancement",
-      "Improvement": "improvement"
-    }
+    "map": { "Bug": "bug", "Feature request": "enhancement" }
   },
   "assignees": {
     "property": "responsible",
-    "map": {
-      "Notion Display Name": "github-username"
-    }
+    "map": { "Notion Display Name": "github-username" }
   },
   "status": {
     "property": "status",
-    "map": {
-      "Backlog": "open",
-      "In Progress": "open",
-      "Done": "closed",
-      "Cancelled": "closed:not planned"
-    }
+    "map": { "Backlog": "open", "In Progress": "open", "Done": "closed", "Cancelled": "closed:not planned" }
   },
-  "priority": {
-    "property": "priority",
-    "map": {
-      "Urgent": "Critical",
-      "High": "High",
-      "Medium": "Medium",
-      "Low": "Low"
+  "issue_fields": {
+    "Priority": {
+      "property": "priority",
+      "map": { "Urgent": "Critical", "High": "High", "Medium": "Medium", "Low": "Low" }
+    },
+    "tag": {
+      "property": "tag",
+      "map": { "Notion Tag A": "GitHub Option A", "Notion Tag B": "GitHub Option B" }
     }
   }
 }
@@ -185,22 +175,29 @@ Each section is optional — include only the ones you need.
 | `label` | `category` (or any property) | Issue labels | Passed through as-is with a warning |
 | `assignees` | `responsible` (or any `people` property) | Issue assignees | Skipped with a warning |
 | `status` | `status` (or any property) | Open/closed state | Skipped with a warning |
-| `priority` | `priority` (or any property) | Priority issue field | Skipped with a warning |
+| `issue_fields.*` | Any property | Org-level issue field (e.g. Priority, tag) | Skipped with a warning |
 
 **Status values:** use `"open"`, `"closed"` / `"completed"` (closes with reason
 *completed*), or `"closed:not planned"` / `"not planned"` (closes with reason
 *not planned*). Case-insensitive.
 
-**Priority values:** the mapped values must exactly match the option names of the
-Priority issue field in your GitHub organization (e.g. `"Critical"`, `"High"`,
-`"Medium"`, `"Low"`). The tool auto-discovers the field ID at startup via
-`gh api /orgs/{org}/issue-fields`. To see your available options run:
+**Issue fields:** the `issue_fields` section is a dict where each key is the exact
+GitHub issue field name and the value has `"property"` (Notion column) and
+`"map"` (value mapping). Mapped values must exactly match the option names of the
+corresponding `single_select` field in your org. For `text` fields you can omit
+`"map"` and the raw Notion value is pushed directly. Multi-select Notion properties
+use the first mapped value (GitHub single-select fields only hold one).
+
+The tool auto-discovers field IDs at startup. To see your org's available fields:
 
 ```bash
 gh api /orgs/YOUR-ORG/issue-fields \
   -H "X-GitHub-Api-Version: 2026-03-10" \
-  --jq '.[] | select(.name == "Priority")'
+  --jq '.[] | {name, content_type, options: [.options[]?.name]}'
 ```
+
+> **Note:** the legacy `"priority"` top-level section still works and is
+> automatically promoted to `issue_fields["Priority"]`.
 
 By default the tool looks for `./mapping.json` in the working directory. Use
 `--mapping path/to/file.json` to point elsewhere.
@@ -211,6 +208,33 @@ python3 notion_to_github.py \
   --repo my-org/my-repo \
   --mapping my-mapping.json
 ```
+
+## Update existing issues (backfill fields without duplicating)
+
+If you already imported issues and want to push additional issue field values
+(e.g. a `tag` you forgot), use `--update-existing`. This mode **never creates
+issues** — it matches Notion rows to existing issues by title and only sets the
+`issue_fields` values from the mapping.
+
+Preview first (safe, changes nothing):
+
+```bash
+python3 notion_to_github.py \
+  --database <DATABASE_ID> \
+  --repo my-org/my-repo \
+  --update-existing --dry-run
+```
+
+Then run for real:
+
+```bash
+python3 notion_to_github.py \
+  --database <DATABASE_ID> \
+  --repo my-org/my-repo \
+  --update-existing
+```
+
+Rows that don't match an existing issue title are skipped with a log message.
 
 ## Preview first (creates nothing)
 
@@ -225,7 +249,8 @@ python3 notion_to_github.py --database <DATABASE_ID> --repo myname/myrepo --dry-
 | `--token` | Notion token (or set `NOTION_TOKEN`) | env var |
 | `--database` | Notion database ID or database URL | required |
 | `--repo` | Target repo `owner/name` or GitHub URL | required |
-| `--mapping` | Path to `mapping.json` for labels, assignees, status, priority | `mapping.json` |
+| `--mapping` | Path to `mapping.json` for labels, assignees, status, issue fields | `mapping.json` |
+| `--update-existing` | Match issues by title, set field values only (no creation) | off |
 | `--label-prop` | Notion property → label (repeatable) | none |
 | `--status-prop` | Property used to detect "done" rows | none |
 | `--close-status` | Close rows whose status equals this | none |
@@ -239,7 +264,8 @@ python3 notion_to_github.py --database <DATABASE_ID> --repo myname/myrepo --dry-
 - The image branch (`notion-assets` by default) must stay in the repo — deleting it removes the
   images from your issues.
 - The title is taken automatically from the database's title column; no flag needed.
-- Re-running creates issues again (no dedup) — use `--dry-run` to check first.
+- Re-running in normal mode creates issues again (no dedup) — use `--dry-run` to check first.
+  To backfill fields on already-imported issues without duplicating, use `--update-existing`.
 - To bulk delete issues: `gh issue list --repo your-org-name/your-repo --state open --limit 1000 --json number -q '.[].number' | xargs -I {} gh issue delete {} --repo your-org-name/your-repo --yes`
 
 ## Security

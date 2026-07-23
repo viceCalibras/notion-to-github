@@ -30,12 +30,26 @@
       "Done": "Completed"
     }
   },
-  "priority": {
-    "property": "priority",
-    "map": {
-      "High": "High",
-      "Medium": "Medium",
-      "Low": "Low"
+  "issue_fields": {
+    "Priority": {
+      "property": "priority",
+      "map": {
+        "High": "High",
+        "Medium": "Medium",
+        "Low": "Low"
+      }
+    },
+    "tag": {
+      "property": "tag",
+      "map": {
+        "APC": "APC",
+        "UpSmarting": "UpSmarting",
+        "PartsOnDemand": "PartsOnDemand",
+        "EasyPartz": "EasyPartz",
+        "SQ": "SQ",
+        "Demo": "Demo",
+        "Resilliance": "Resilliance"
+      }
     }
   }
 }
