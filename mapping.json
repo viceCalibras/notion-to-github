@@ -3,12 +3,7 @@
     "property": "category",
     "map": {
       "bug": "bug",
-      "feature_extraction": "feature_extraction",
-      "llm_RAG_ds": "llm_RAG_ds",
-      "infra": "infra",
-      "platform": "platform",
-      "ux": "ux",
-      "Testing": "testing"
+      "feature": "feature"
     }
   },
   "assignees": {
